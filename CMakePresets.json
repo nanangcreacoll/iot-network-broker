@@ -1,0 +1,32 @@
+{
+	"version": 3,
+	"configurePresets": [
+		{
+			"name": "default",
+			"hidden": true,
+			"generator": "Ninja",
+			"cacheVariables": {
+				"CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+			},
+			"binaryDir": "${sourceDir}/build/${presetName}"
+		},
+		{
+			"name": "Debug",
+			"displayName": "Debug",
+			"description": "Use this preset for debug builds.",
+			"inherits": "default",
+			"cacheVariables": {
+				"CMAKE_BUILD_TYPE": "Debug"
+			}
+		},
+		{
+			"name": "Release",
+			"displayName": "Release",
+			"description": "Use this preset for release builds.",
+			"inherits": "default",
+			"cacheVariables": {
+				"CMAKE_BUILD_TYPE": "Release"
+			}
+		}
+	]
+}
