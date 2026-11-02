@@ -1,4 +1,3 @@
-#include <iostream>
 #include <thread>
 #include <cassert>
 #include <gtest/gtest.h>
@@ -32,10 +31,4 @@ TEST(RingBuffer, RingBufferProcess)
 
   producer.join();
   consumer.join();
-}
-
-int main(int argc, char **argv)
-{
-  ::testing::InitGoogleTest(&argc, argv);
-  return RUN_ALL_TESTS();
 }

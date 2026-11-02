@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 3.20)
 project(iot-network-broker LANGUAGES CXX)
+include(CTest)
+include(GoogleTest)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -17,6 +19,7 @@ endif()
 
 add_library(project_warnings INTERFACE)
 target_compile_options(project_warnings INTERFACE
+    $<$<CXX_COMPILER_ID:GNU,Clang>:--param=destructive-interference-size=64>
     $<$<CXX_COMPILER_ID:GNU,Clang>:-Wall -Wextra -Wpedantic -Wshadow -Wnon-virtual-dtor -Wconversion>
 )
 
@@ -54,5 +57,4 @@ target_link_libraries(tests PRIVATE
     GTest::gtest_main
 )
 
-include(GoogleTest)
 gtest_discover_tests(tests)

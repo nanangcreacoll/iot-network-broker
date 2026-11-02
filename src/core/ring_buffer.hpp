@@ -10,12 +10,10 @@
 
 namespace iot::core
 {
-
 #if defined(__cpp_lib_hardware_interference_size)
     using std::hardware_destructive_interference_size;
 #else
-    // Standard L1 cache line alignment fallback for x86_64/ARM64
-    constexpr std::size_t hardware_destructive_interference_size = 64;
+    inline constexpr std::size_t hardware_destructive_interference_size = 64;
 #endif
 
     /**
@@ -30,9 +28,8 @@ namespace iot::core
     public:
         using value_type = T;
 
-        SPSCQueue() : buffer_(Capacity) {}
+        SPSCQueue() : buffer(Capacity) {}
 
-        // Non-copyable and non-movable to guarantee thread safety and fixed memory locations
         SPSCQueue(const SPSCQueue &) = delete;
         SPSCQueue &operator=(const SPSCQueue &) = delete;
         SPSCQueue(SPSCQueue &&) = delete;
@@ -48,22 +45,22 @@ namespace iot::core
             requires std::is_assignable_v<T &, U &&>
         [[nodiscard]] bool push(U &&item) noexcept
         {
-            const auto current_head = head_.load(std::memory_order_relaxed);
+            const auto currentHead = this->head.load(std::memory_order_relaxed);
 
             // Use cached tail to avoid reading atomic consumer tail on every push
-            if (current_head - cached_tail_ == Capacity)
+            if (currentHead - this->cachedTail == Capacity)
             {
-                cached_tail_ = tail_.load(std::memory_order_acquire);
-                if (current_head - cached_tail_ == Capacity)
+                this->cachedTail = this->tail.load(std::memory_order_acquire);
+                if (currentHead - this->cachedTail == Capacity)
                 {
-                    return false; // Queue full
+                    return false;
                 }
             }
 
-            buffer_[current_head & Mask] = std::forward<U>(item);
+            this->buffer[currentHead & iot::core::SPSCQueue<T, Capacity>::Mask] = std::forward<U>(item);
 
             // Release store guarantees buffer assignment is visible to consumer before head updates
-            head_.store(current_head + 1, std::memory_order_release);
+            this->head.store(currentHead + 1, std::memory_order_release);
             return true;
         }
 
@@ -73,22 +70,22 @@ namespace iot::core
          */
         [[nodiscard]] std::optional<T> pop() noexcept
         {
-            const auto current_tail = tail_.load(std::memory_order_relaxed);
+            const auto currentTail = this->tail.load(std::memory_order_relaxed);
 
             // Use cached head to avoid reading atomic producer head on every pop
-            if (current_tail == cached_head_)
+            if (currentTail == this->cachedHead)
             {
-                cached_head_ = head_.load(std::memory_order_acquire);
-                if (current_tail == cached_head_)
+                this->cachedHead = this->head.load(std::memory_order_acquire);
+                if (currentTail == this->cachedHead)
                 {
                     return std::nullopt; // Queue empty
                 }
             }
 
-            T item = std::move(buffer_[current_tail & Mask]);
+            T item = std::move(this->buffer[currentTail & iot::core::SPSCQueue<T, Capacity>::Mask]);
 
             // Release store guarantees item move is completed before tail updates
-            tail_.store(current_tail + 1, std::memory_order_release);
+            this->tail.store(currentTail + 1, std::memory_order_release);
             return item;
         }
 
@@ -98,7 +95,7 @@ namespace iot::core
          */
         [[nodiscard]] bool empty() const noexcept
         {
-            return head_.load(std::memory_order_relaxed) == tail_.load(std::memory_order_relaxed);
+            return this->head.load(std::memory_order_relaxed) == this->tail.load(std::memory_order_relaxed);
         }
 
         /**
@@ -106,9 +103,9 @@ namespace iot::core
          */
         [[nodiscard]] std::size_t size() const noexcept
         {
-            const auto head = head_.load(std::memory_order_relaxed);
-            const auto tail = tail_.load(std::memory_order_relaxed);
-            return (head >= tail) ? (head - tail) : 0;
+            const auto currentHead = this->head.load(std::memory_order_relaxed);
+            const auto currentTail = this->tail.load(std::memory_order_relaxed);
+            return (currentHead >= currentTail) ? (currentHead - currentTail) : 0;
         }
 
         [[nodiscard]] constexpr std::size_t capacity() const noexcept
@@ -120,15 +117,15 @@ namespace iot::core
         static constexpr std::size_t Mask = Capacity - 1;
 
         // Buffer container
-        std::vector<T> buffer_;
+        std::vector<T> buffer;
 
         // Producer state (aligned to prevent false sharing with consumer state)
-        alignas(hardware_destructive_interference_size) std::atomic<std::size_t> head_{0};
-        std::size_t cached_tail_{0};
+        alignas(iot::core::hardware_destructive_interference_size) std::atomic<std::size_t> head{0};
+        std::size_t cachedTail{0};
 
         // Consumer state (aligned to prevent false sharing with producer state)
-        alignas(hardware_destructive_interference_size) std::atomic<std::size_t> tail_{0};
-        std::size_t cached_head_{0};
+        alignas(iot::core::hardware_destructive_interference_size) std::atomic<std::size_t> tail{0};
+        std::size_t cachedHead{0};
     };
 
 } // namespace iot::core
