@@ -2,9 +2,9 @@
 #include <cassert>
 #include <gtest/gtest.h>
 
-#include "core/ring_buffer.hpp"
+#include "core/spsc_queue.hpp"
 
-TEST(RingBuffer, RingBufferProcess)
+TEST(SPSCQueue, RingBufferProcess)
 {
   constexpr std::size_t QueueSize = 1024;
   constexpr int TotalItems = 100'000;
